@@ -3,76 +3,83 @@ name: screenshot-to-website
 description: Build a fully working replica of a website from a screenshot, matching design and functionality exactly.
 ---
 
-# Screenshot to Website Skill
+# Screenshot to Website
 
 ## Overview
 
-Use this skill when given a screenshot (and optionally a URL) of a website. The agent should replicate the site fully, including design and interactive functionality.
+Use this skill to replicate a website from a screenshot (and optional URL), ensuring exact visual fidelity and full functional behavior.
 
-## When to Use
+---
 
-Trigger this skill when:
-- You are asked to convert a website screenshot into a working implementation.
-- A URL is provided to explore navigation and interactive behavior beyond the screenshot.
-
-## Instructions
-
-### Role
+## Role
 
 Act like a senior full-stack developer who ships production-ready code.  
-No shortcuts, no placeholders, no “implement later" comments.
+No shortcuts, no placeholders, no "implement later" comments.
 
-### Task
+---
 
-1. Look at the provided screenshot of a website.
-2. Build a fully working replica.
-3. If a URL is provided, use it to explore additional context such as:
-   - Navigation
-   - Interactions
-   - Hidden states
-   - Forms behavior
+## Task
 
-### Design
+Look at the provided screenshot of a website and build a fully working replica.
 
-- Match **colors**, **fonts**, **spacing**, **layout** exactly.
-- Use **Google Fonts** (pick closest match).
-- Add **hover states** for buttons and links.
-- Add **smooth transitions** for interactions.
-- Ensure the replica is **mobile responsive**.
+If a URL is provided — use it to explore the site beyond the screenshot:
+- Check navigation
+- Inspect interactions
+- Identify hidden states
+- Verify form behavior
 
-### Functionality
+Screenshot + URL together give full context.
 
-- Every button must work (open modal, navigate, toggle, etc.).
-- Every form must submit and show feedback.
-- Every link must navigate.
-- Dropdowns, tabs, and accordions must function.
-- Search bars should filter or perform search correctly.
+---
 
-### Backend (if needed)
+## Design Requirements
 
-If the screenshot implies a backend is required, implement:
+- Match colors, fonts, spacing, and layout exactly
+- Use Google Fonts (pick closest match)
+- Add hover states for buttons and links
+- Add smooth transitions for interactions
+- Ensure mobile responsiveness
 
-- **Auth forms** → Basic login/signup with session.
-- **Data tables** → Create realistic mock data, store in SQLite.
-- **Contact forms** → Save submissions.
-- **Dashboard stats** → Generate realistic fake numbers.
+---
 
-### Tech
+## Functional Requirements
 
-- **Frontend:** Next.js  
-- **Backend (if needed):** Python 3.12, FastAPI, full type hints, SQLite
+- Every button must work (open modal, navigate, toggle, etc.)
+- Every form must submit and show feedback
+- Every link must navigate
+- Dropdowns, tabs, and accordions must function
+- Search bars should filter or perform search
 
-## Output Format
+---
 
-When generating responses, structure them to include:
+## Backend (Only If Implied)
 
-- A clear description of the development steps.
-- Code snippets where relevant.
-- Explanations of UX and design decisions.
-- Any assumptions made based on the screenshot.
+If the screenshot implies backend behavior, implement:
 
-## Notes
+- Auth forms → basic login/signup with session
+- Data tables → realistic mock data stored in SQLite
+- Contact forms → save submissions
+- Dashboard stats → generate realistic fake numbers
 
-- Do not include placeholder text like “lorem ipsum” or “coming soon”.
-- Ensure mobile view works at 375px width.
-- Verify all interactive elements function in the final implementation.
+---
+
+## Tech Stack
+
+- Frontend: Next.js
+- Backend (if needed): Python 3.12, FastAPI, full type hints, SQLite
+
+---
+
+## Final Verification
+
+Before finishing, verify:
+
+- [ ] App runs without errors
+- [ ] Every button does something when clicked
+- [ ] Every form submits and shows response
+- [ ] Every link navigates somewhere
+- [ ] No placeholder text like "lorem ipsum" or "coming soon"
+- [ ] No TODO comments or unfinished code
+- [ ] Mobile view works (375px width)
+
+If any check fails — fix it before submitting.
