@@ -4,7 +4,7 @@ npx skills add gemini960114/skills
 ```
 
 
-## prompt for 
+## screenshot-to-website 
 ```
 Here is the website to replicate:
 https://www.stocktaper.com/
