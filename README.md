@@ -5,7 +5,8 @@ npx skills add gemini960114/skills
 
 
 ## screenshot-to-website 
-```
+```markdown
+
 ## Role
 
 Act like a senior full-stack developer who ships production-ready code. No shortcuts, no placeholders, no "implement later" comments.
