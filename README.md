@@ -1,5 +1,5 @@
 # skills
-```bash
+```markdown
 npx skills add gemini960114/skills
 ```
 
