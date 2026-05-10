@@ -1,0 +1,4 @@
+interface:
+  display_name: "Google Auth GSI"
+  short_description: "Build and debug Google GSI auth for Express apps"
+  default_prompt: "Use $google-auth-gsi to implement or debug Google Identity Services login."
