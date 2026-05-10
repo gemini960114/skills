@@ -1,0 +1,5 @@
+interface:
+  display_name: "NIAR Web Presentation"
+  short_description: "Static NIAR-style HTML web slide decks"
+  brand_color: "#E97132"
+  default_prompt: "Use $niar-web-presentation to build a NIAR-style web slide presentation."

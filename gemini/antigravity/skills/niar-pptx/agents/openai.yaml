@@ -1,0 +1,5 @@
+interface:
+  display_name: "NIAR PPTX"
+  short_description: "Evidence-grounded NIAR-style editable PPTX decks"
+  brand_color: "#E97132"
+  default_prompt: "Use $niar-pptx to create an editable NIAR-style PowerPoint deck."

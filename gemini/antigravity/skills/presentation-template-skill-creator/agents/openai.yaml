@@ -1,0 +1,4 @@
+interface:
+  display_name: "Presentation Template Skill Creator"
+  short_description: "Create web/PPTX skills from deck templates"
+  default_prompt: "Use $presentation-template-skill-creator to turn a PPTX or PDF presentation template into a reusable web-presentation or PPTX skill."
