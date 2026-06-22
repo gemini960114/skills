@@ -1,9 +1,10 @@
 #!/bin/bash
 # =============================================================================
 # template_cpu.slurm  —  Standard CPU job (ngs32g: 4 cores, 32 GB, 4 days)
-# Account: mst109178   Nodes: 25a-cpn*
+# Account: <YOUR_CPU_ACCOUNT>  (run: sacctmgr show user $USER withassoc format=Account -n)
+# Nodes: 25a-cpn*
 # =============================================================================
-#SBATCH --account=mst109178
+#SBATCH --account=<YOUR_CPU_ACCOUNT>
 #SBATCH --partition=ngs32g
 #SBATCH --job-name=cpu_job
 #SBATCH --nodes=1

@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
 # template_multigpu.slurm  —  Multi-node DDP (16gpus: 2 nodes, 16× H200)
-# Account: mst113173   Nodes: 25a-hgpn[001-196]
+# Account: <YOUR_GPU_ACCOUNT>  (verify: scontrol show partition 16gpus | grep AllowAccounts)
 # QoS p_16gpus: max 6 concurrent jobs per user
 # =============================================================================
-#SBATCH --account=mst113173
+#SBATCH --account=<YOUR_GPU_ACCOUNT>
 #SBATCH --partition=16gpus
 #SBATCH --job-name=ddp_job
 #SBATCH --nodes=2

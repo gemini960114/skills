@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
-# template_multicpu.slurm  —  Multi-node CPU parallel (ngs248c: 2 nodes, 248 cores)
-# Account: mst109178   Nodes: 25a-cpn* (2 nodes, no memory QoS cap)
-# Use ngs496c for 4-node / 496-core jobs.
+# template_multicpu.slurm  —  Multi-CPU parallel (ngs248c, 2 nodes, no mem cap)
+# Account: <YOUR_CPU_ACCOUNT>  (run: sacctmgr show user $USER withassoc format=Account -n)
+# Nodes: 25a-cpn* (2 nodes, no memory QoS cap)
 # =============================================================================
-#SBATCH --account=mst109178
+#SBATCH --account=<YOUR_CPU_ACCOUNT>
 #SBATCH --partition=ngs248c
 #SBATCH --job-name=multicpu_job
 #SBATCH --nodes=2

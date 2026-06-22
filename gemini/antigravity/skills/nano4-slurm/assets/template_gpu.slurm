@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
 # template_gpu.slurm  —  Single-node GPU job (8gpus: 1 node, up to 8× H200)
-# Account: mst113173   Nodes: 25a-hgpn[001-196]
+# Account: <YOUR_GPU_ACCOUNT>  (verify: scontrol show partition 8gpus | grep AllowAccounts)
 # QoS p_8gpus: max 8 concurrent jobs per user, no TRES cap
 # =============================================================================
-#SBATCH --account=mst113173
+#SBATCH --account=<YOUR_GPU_ACCOUNT>
 #SBATCH --partition=8gpus
 #SBATCH --job-name=gpu_job
 #SBATCH --nodes=1

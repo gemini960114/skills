@@ -16,6 +16,107 @@ allowed-tools:
 
 ---
 
+## 0. Interactive Job Submission Workflow (FOLLOW THIS ORDER)
+
+> [!IMPORTANT]
+> When a user asks to submit a Slurm job **without fully specifying account, partition, and resources**, always follow this workflow. Do NOT silently pick defaults.
+
+### Step 1 — Discover and display available accounts
+
+Run this and present results to the user:
+
+```bash
+# List all accounts available to the current user
+sacctmgr show user $USER withassoc format=User,Account -n | awk '{print $2}' | sort -u
+```
+
+**Present as a numbered list.** Example output to show the user:
+```
+您的可用計畫帳號 (Accounts)：
+ 1. acd109001     ← 學術研究計畫 (acd)
+ 2. gov109028     ← 政府計畫 (gov)
+ 3. mst109178     ← 一般計畫 (mst)
+ 4. mst113173     ← GPU 計畫 (mst，需確認是否有 GPU partition 權限)
+ ... (依實際輸出列出，帳號前綴說明類別)
+```
+
+**Account type naming convention on this cluster:**
+- `mst*` — 一般科技部/國科會計畫
+- `gov*` — 政府機關計畫
+- `acd*` — 學術研究計畫
+- `ent*` — 企業計畫
+- `edu*` — 教育計畫
+
+> [!IMPORTANT]
+> Each user may have **multiple accounts**. Always ask the user which account to charge, or present the list and let them choose. Never assume an account.
+
+### Step 2 — Discover and display available partitions
+
+```bash
+# Show all partitions with status and time limit
+sinfo --format="%P %a %l %D %C %G" | column -t
+```
+
+Then cross-reference with the partition→account rules in Section 2 & 3:
+- **CPU/MPN partitions** (`ngs*`): require an account that has access — verify with `sacctmgr show partition <partition>` or check `AllowAccounts` in `scontrol show partition <partition>`
+- **GPU partitions** (`8gpus`, `16gpus`, etc.): require a GPU-enabled account (typically a different account than CPU). Verify by attempting submission or checking `AllowAccounts`.
+- **Special partitions** (`taide`, `slinky`): restricted to specific accounts only (see Section 3)
+
+**Present as a filtered table** (skip `inactive` partitions):
+```
+可用的 Partition 列表：
+類型  Partition      時間限制     最大 CPU  最大記憶體
+────────────────────────────────────────────────────
+CPU   ngs8g          2 天         1         8G
+CPU   ngs16g         2 天         2         16G
+CPU   ngs32g         4 天         4         32G
+CPU   ngs62g         4 天         8         62G
+CPU   ngs125g        無限制       16        125G
+CPU   ngs250g        無限制       32        250G
+CPU   ngs500g        無限制       64        500G
+CPU   ngs1000g       無限制       124       1000G
+MPN   ngs1500g       無限制       32        1500G
+MPN   ngs2t          無限制       42        2000G
+MPN   ngs3t          無限制       64        3000G
+MPN   ngs6t          無限制       124       6000G
+GPU   8gpus          2 天         112       1900G  (需 GPU 帳號，見 Section 3)
+GPU   16gpus         2 天         112×2     1900G×2(需 GPU 帳號，見 Section 3)
+```
+
+### Step 3 — Accept user's choice and confirm resource spec
+
+After user selects account + partition, **always confirm the resource spec**:
+
+| 用戶說 | Agent 行為 |
+| :--- | :--- |
+| 「最大規格」/「不要浪費」/「full」 | 填入 Section 2E 的 QoS 天花板 |
+| 指定 CPU 數量（如「8 cores」） | 使用用戶指定值，但驗證不超過 QoS 上限 |
+| 沒說 CPU，只說 partition | **詢問用戶**：「您需要幾個 CPU？最大可申請 N 個」 |
+| 沒說記憶體 | 按比例分配（e.g. 16 CPU on ngs250g → mem=125G）或填天花板 |
+
+> [!WARNING]
+> **Never silently default to `--cpus-per-task=1`** on large-memory partitions (`ngs125g` and above). Always ask or fill the ceiling.
+
+### Step 4 — Verify QoS limits before writing the script
+
+```bash
+# 驗證指定 partition 的 QoS 限制（將 ngs250g 換成目標 partition）
+sacctmgr show qos p_ngs250g format=Name,MaxTRESPerUser -n
+# 輸出範例: p_ngs250g  cpu=32,mem=256000M  → cpus-per-task=32, mem=250G
+```
+
+### Step 5 — Generate and submit
+
+Generate the script using the correct template from Section 4, fill in all fields, then:
+```bash
+mkdir -p logs
+sbatch <script_name>.slurm
+```
+
+Confirm submission by showing the Job ID and running `squeue -j <JOB_ID>`.
+
+---
+
 ## 1. Hardware Summary
 
 | Node Class | Hostnames | Count | CPU Cores | Memory | GPU |
@@ -29,9 +130,14 @@ allowed-tools:
 
 ---
 
-## 2. CPU & Memory Partitions (Account: `mst109178`)
+## 2. CPU & Memory Partitions
 
-All partitions below target CPN or MPN nodes and require `--account=mst109178`.
+All partitions below target CPN or MPN nodes. Use `--account=<YOUR_CPU_ACCOUNT>` where `<YOUR_CPU_ACCOUNT>` is obtained from Step 1 of the Interactive Workflow (Section 0).
+
+```bash
+# To find which accounts are allowed on a specific partition:
+scontrol show partition ngs250g | grep AllowAccounts
+```
 
 ### 2A. Standard CPU Partitions (CPN, `25a-cpn*`)
 
@@ -77,12 +183,53 @@ These partitions have **no memory cap** — only CPU cap. Use for CPU-bound para
 | `ngscourse32g` | 4 hours | 4 | 32 GB |
 | `ngscourse125g` | 1 day | 16 | 125 GB |
 
+### 2E. ⚠️ Maximum-Spec Rule (IMPORTANT for agents)
+
+> [!IMPORTANT]
+> **When the user asks for "maximum spec", "full resources", "不要浪費", or "最大規格"**, you MUST fill `--cpus-per-task` and `--mem` to the QoS ceiling for that partition. Do **NOT** default to `--cpus-per-task=1`.
+
+**Quick lookup — always set BOTH fields to the ceiling:**
+
+| Partition | Use `--cpus-per-task=` | Use `--mem=` |
+| :--- | :--- | :--- |
+| `ngs8g` | 1 | 8G |
+| `ngs16g` | 2 | 16G |
+| `ngs32g` | 4 | 32G |
+| `ngs62g` | 8 | 62G |
+| `ngs125g` | 16 | 125G |
+| `ngs250g` | **32** | **250G** |
+| `ngs500g` | **64** | **500G** |
+| `ngs1000g` | **124** | **1000G** |
+| `ngs1500g` | **32** | **1500G** |
+| `ngs2t` | **42** | **2000G** |
+| `ngs3t` | **64** | **3000G** |
+| `ngs6t` | **124** | **6000G** |
+
+**To verify live QoS limits before scripting, always run:**
+```bash
+# Check QoS TRES limits for a partition's QoS
+sacctmgr show qos p_<partition_name> format=Name,MaxTRESPerUser -n
+# Example:
+sacctmgr show qos p_ngs250g format=Name,MaxTRESPerUser -n
+# Output: p_ngs250g  cpu=32,mem=256000M  → use --cpus-per-task=32 --mem=250G
+```
+
 ---
 
-## 3. GPU Partitions (Account: `mst113173`)
+## 3. GPU Partitions
 
 All GPU partitions target `25a-hgpn[001-196]` (H200 × 8 per node) unless noted.  
-**Account**: `mst113173` (verified: `mst109178` is **denied** from GPU partitions).
+**Account**: Use a GPU-enabled account (check Section 0 Step 1 to list your accounts, then verify GPU access).
+
+```bash
+# Check which accounts you have that can access GPU partitions:
+scontrol show partition 8gpus | grep AllowAccounts
+# Then verify your accounts against that list:
+sacctmgr show user $USER withassoc format=User,Account -n | awk '{print $2}' | sort -u
+```
+
+> [!WARNING]
+> CPU accounts (e.g., `mst109178`-type) are typically **denied** on GPU partitions. You must use a separate GPU-enabled account. Always verify before submitting.
 
 | Partition | Max Jobs/User | Time Limit | Nodes | Notes |
 | :--- | :--- | :--- | :--- | :--- |
@@ -109,11 +256,41 @@ All GPU partitions target `25a-hgpn[001-196]` (H200 × 8 per node) unless noted.
 
 All templates use `logs/` for output. **Always run `mkdir -p logs` before `sbatch`**.
 
-### A. CPU Job (ngs32g, 4 cores, 32 GB)
+### A. CPU Job — Max Spec (ngs250g, **32 cores, 250 GB**, Infinite time)
+
+> Use this pattern when the user requests "maximum resources" on `ngs250g`.
 
 ```bash
 #!/bin/bash
-#SBATCH --account=mst109178
+#SBATCH --job-name=my_job
+#SBATCH --partition=ngs250g            # Infinite time limit
+#SBATCH --account=<YOUR_CPU_ACCOUNT>   # ← 從 Section 0 Step 1 查詢取得
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=32             # QoS ceiling (cpu=32)
+#SBATCH --mem=250G                     # QoS ceiling (mem=256000M ≈ 250G)
+#SBATCH --output=logs/job-%j.out
+#SBATCH --error=logs/job-%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=<YOUR_EMAIL>       # ← 替換為用戶 email
+
+mkdir -p /work/$(whoami)/tmp && export TMPDIR="/work/$(whoami)/tmp"
+cd "$SLURM_SUBMIT_DIR"
+
+echo "Job $SLURM_JOB_ID started on $(date)"
+echo "Node: $SLURM_NODELIST  CPUs: $SLURM_CPUS_PER_TASK  Mem: 250G"
+
+# YOUR TASK HERE
+sleep infinity
+
+echo "Job finished on $(date)"
+```
+
+### B. CPU Job — Conservative (ngs32g, 4 cores, 32 GB)
+
+```bash
+#!/bin/bash
+#SBATCH --account=<YOUR_CPU_ACCOUNT>   # ← 從 Section 0 Step 1 查詢取得
 #SBATCH --partition=ngs32g
 #SBATCH --job-name=my_cpu_job
 #SBATCH --nodes=1
@@ -129,11 +306,11 @@ cd "$SLURM_SUBMIT_DIR"
 # YOUR TASK HERE
 ```
 
-### B. Single-Node GPU Job (8gpus, 4× H200)
+### C. Single-Node GPU Job (8gpus, 4× H200)
 
 ```bash
 #!/bin/bash
-#SBATCH --account=mst113173
+#SBATCH --account=<YOUR_GPU_ACCOUNT>   # ← GPU 帳號，從 Section 0 Step 1 查詢取得
 #SBATCH --partition=8gpus
 #SBATCH --job-name=my_gpu_job
 #SBATCH --nodes=1
@@ -151,11 +328,11 @@ ml cuda/12.6
 # singularity exec --nv -B /work /work/$(whoami)/docker/image.sif python train.py
 ```
 
-### C. Multi-Node GPU Job (16gpus, 2 nodes, 16× H200)
+### D. Multi-Node GPU Job (16gpus, 2 nodes, 16× H200)
 
 ```bash
 #!/bin/bash
-#SBATCH --account=mst113173
+#SBATCH --account=<YOUR_GPU_ACCOUNT>   # ← GPU 帳號，從 Section 0 Step 1 查詢取得
 #SBATCH --partition=16gpus
 #SBATCH --job-name=ddp_job
 #SBATCH --nodes=2
@@ -176,11 +353,11 @@ ml cuda/12.6
 srun python train.py --init_method tcp://$MASTER_ADDR:$MASTER_PORT --world_size $WORLD_SIZE
 ```
 
-### D. Multi-CPU Job (ngs248c, 248 cores, no memory cap)
+### E. Multi-CPU Job (ngs248c, 248 cores, no memory cap)
 
 ```bash
 #!/bin/bash
-#SBATCH --account=mst109178
+#SBATCH --account=<YOUR_CPU_ACCOUNT>   # ← 從 Section 0 Step 1 查詢取得
 #SBATCH --partition=ngs248c
 #SBATCH --job-name=parallel_cpu
 #SBATCH --nodes=2
@@ -216,11 +393,21 @@ sacct -j <JOB_ID> --format=JobID,JobName,State,ExitCode,Elapsed,MaxRSS
 # Check idle resources across all partitions
 bash .claude/skills/nano4-slurm/scripts/check_resources.sh
 
-# Launch interactive CPU session
-srun -p dev --account=mst109178 --cpus-per-task=4 --mem=32G --pty bash
+# ── QoS limit queries (run BEFORE writing a max-spec script) ──
+# List all QoS with TRES limits
+sacctmgr show qos format=Name,MaxTRESPerUser -n
 
-# Launch interactive GPU session (1× H200)
-srun -p dev --account=mst113173 --gres=gpu:H200:1 --cpus-per-task=12 --mem=200G --pty bash
+# Check specific partition QoS (replace partition name)
+sacctmgr show qos p_ngs250g format=Name,MaxTRESPerUser -n
+
+# Check partition details (MaxCPUsPerNode, time limit, QoS name)
+scontrol show partition ngs250g
+
+# Launch interactive CPU session (replace <YOUR_CPU_ACCOUNT>)
+srun -p ngstest --account=<YOUR_CPU_ACCOUNT> --cpus-per-task=4 --mem=32G --pty bash
+
+# Launch interactive GPU session (replace <YOUR_GPU_ACCOUNT>)
+srun -p dev --account=<YOUR_GPU_ACCOUNT> --gres=gpu:H200:1 --cpus-per-task=12 --mem=200G --pty bash
 ```
 
 ---
@@ -240,11 +427,18 @@ mkdir -p /work/$(whoami)/tmp
 export TMPDIR="/work/$(whoami)/tmp"
 ```
 
-### C. GPU account: `mst109178` is **denied** on all GPU partitions
-`32gpus` and `64gpus` explicitly deny `mst109178`. Use `mst113173` for all GPU work.
+### C. CPU account denied on GPU partitions
+GPU partitions enforce `AllowAccounts` — CPU-type accounts are typically rejected. Before submitting a GPU job:
+```bash
+# 1. Check which accounts are allowed:
+scontrol show partition 8gpus | grep AllowAccounts
+# 2. List your accounts:
+sacctmgr show user $USER withassoc format=User,Account -n | awk '{print $2}' | sort -u
+# 3. Use the account that appears in both lists
+```
 
-### D. `taide` / `slinky` require special accounts
-`taide` allows only `gov113008`, `gov115010`. `slinky` allows only `gov115010`, `gov113097`. Submitting with `mst113173` to these partitions will be rejected immediately.
+### D. `taide` / `slinky` require special restricted accounts
+`taide` and `slinky` partition access is restricted to specific project accounts only. Run `scontrol show partition taide | grep AllowAccounts` to see the current allowed list. Submitting with an unauthorized account will be rejected immediately.
 
 ### E. Singularity containers need `--nv` for GPU access
 ```bash
@@ -259,6 +453,21 @@ sacct -j <JOB_ID> --format=MaxRSS,ReqMem
 
 ### G. `ngs248c` / `ngs496c` span multiple CPN nodes — memory is not pooled
 Each CPN node has ~1 TB independently. If your job needs more than 1 TB on a single process, use `ngs1000g` (single node, 1 TB) or MPN partitions.
+
+### H. ❌ Anti-pattern: defaulting to `--cpus-per-task=1`
+When generating a script for `ngs250g`, `ngs500g`, or any large-memory partition, **never** silently set `--cpus-per-task=1`. This wastes the allocated node slot. The rule:
+- If the user specifies a CPU count → use it.
+- If the user says "max", "full", or "最大規格" → fill to QoS ceiling (see Section 2E).
+- If the user says nothing about CPU → **ask** or default to the QoS ceiling for infinite-time partitions.
+
+```bash
+# WRONG (wastes 31 of 32 available CPUs on ngs250g)
+#SBATCH --cpus-per-task=1
+
+# CORRECT for ngs250g max-spec
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=250G
+```
 
 ---
 
